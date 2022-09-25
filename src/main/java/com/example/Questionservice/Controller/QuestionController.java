@@ -1,5 +1,6 @@
 package com.example.Questionservice.Controller;
 
+import com.example.Questionservice.DTO.QuestionAnswerResponseDTO;
 import com.example.Questionservice.DTO.QuestionRequestDTO;
 import com.example.Questionservice.DTO.QuestionResponseDTO;
 import com.example.Questionservice.DTO.QuestionUpdateRequestDTO;
@@ -47,7 +48,7 @@ public class QuestionController {
     }
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public QuestionResponseDTO getQuestion(@PathVariable Long id){
+    public QuestionAnswerResponseDTO getQuestion(@PathVariable Long id){
         return questionService.getQuestion(id);
     }
 }

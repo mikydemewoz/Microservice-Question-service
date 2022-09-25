@@ -20,8 +20,11 @@ public class Question {
     private Long id;
     private String title;
     private String description;
-    private LocalDate created_date;
+    @Column(name = "create_date")
+    private LocalDate createdDate;
     private Long userId;
     @ManyToMany(cascade = CascadeType.ALL)
     private List<Category> categories;
+
+
 }

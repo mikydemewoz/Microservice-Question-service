@@ -7,8 +7,10 @@ import com.example.Questionservice.Repository.QuestionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,12 +19,14 @@ import java.util.Optional;
 public class QuestionService {
     @Autowired
     QuestionRepository questionRepository;
+    @Autowired
+    WebClient.Builder webClientBuilder;
 
     public void createQuestion(QuestionRequestDTO questionRequestDTO){
         Question question = new Question();
         question.setTitle(questionRequestDTO.getTitle());
         question.setDescription(questionRequestDTO.getDescription());
-        question.setCreated_date(LocalDate.now());
+        question.setCreatedDate(LocalDate.now());
         question.setUserId(questionRequestDTO.getUserId());
 
         List<Category> categories =  questionRequestDTO.getCategories()
@@ -34,14 +38,22 @@ public class QuestionService {
     }
 
     public List<QuestionResponseDTO> getQuestions(){
-        List<Question> questions = questionRepository.findAll();
+        List<Question> questions = questionRepository.findAllByOrderByCreatedDateDesc();
         return questions.stream().map(question -> mapToQuestionResponse(question)).toList();
     }
 
-    public QuestionResponseDTO getQuestion(Long id) {
+    public QuestionAnswerResponseDTO getQuestion(Long id) {
         Optional<Question> question = questionRepository.findById(id);
         if(question.isPresent()){
-            return mapToQuestionResponse(question.get());
+            AnswerResponseDTO[] answerResponseDTOS = webClientBuilder.build().get()
+                    .uri("http://localhost:8080/answer/getOne", uriBuilder -> uriBuilder.path("/{id}").build(question.get().getId()))
+                    .retrieve()
+                    .bodyToMono(AnswerResponseDTO[].class)
+                    .block();
+            QuestionAnswerResponseDTO questionAnswerResponseDTO = new QuestionAnswerResponseDTO();
+            questionAnswerResponseDTO.setAnswer(Arrays.stream(answerResponseDTOS).toList());
+            questionAnswerResponseDTO.setQuestion(mapToQuestionResponse(question.get()));
+            return questionAnswerResponseDTO;
         }else {
             return null;
         }
@@ -51,6 +63,11 @@ public class QuestionService {
     public boolean deleteQuestion(Long id){
         Optional<Question> question = questionRepository.findById(id);
         if(question.isPresent()){
+            webClientBuilder.build().delete()
+                    .uri("http://localhost:8080/answer/deleteanswers", uriBuilder -> uriBuilder.path("/{id}").build(question.get().getId()))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
             questionRepository.deleteById(id);
             return true;
         }
@@ -61,7 +78,7 @@ public class QuestionService {
         Optional<Question> question1 = questionRepository.findById(id);
         if(question1.isPresent()){
             Question question2 = question1.get();
-            question2.setCreated_date(LocalDate.now());
+            question2.setCreatedDate(LocalDate.now());
             if(question.getTitle() != null){
                 question2.setTitle(question.getTitle());
             }
